@@ -1,0 +1,225 @@
+import matplotlib as mpl
+from mpl_toolkits.mplot3d import Axes3D
+import numpy as np
+import matplotlib.pyplot as plt
+#import seaborn
+
+# Importing data
+data= np.loadtxt('Objectives.txt')
+
+print("\n The data structure required is a text file with: \n Column 1: Spillage, Column 2: Reliability, Column 3: Resilience/Vulnerability, \n Column 4: Storage, Column 5: Conveyance, Column 6: Supply \n") 
+
+print("Input the objectives to plot below. Use the following naming convention: \n Spillage Objective = Spill \n Reliability = Rel \n Resilience/Vulnerability = Res \n Storage = Stor \n Conveyance = Con \n Supply = Sup")
+
+Spillage=data[:,0]
+Reliability = data[:,1]
+Resilience = data[:,2]
+Storage=data[:,3]
+Conveyance=data[:,4]
+Supply=data[:,5]
+
+# User input for objectives to plot
+x_obj_name = input("\n Input the x-axis objective: ")
+
+if x_obj_name == 'Spill':   # If statement for correct input name
+	x_obj_name = 'Spillage' # Assign full name for plotting purposes
+	x_obj = Spillage        # Assign array of values to correct plotting objective
+	x_opt = 0		# Assign optimum value for displaying "Optimum Point"
+if x_obj_name == 'Rel':
+	x_obj_name = 'Reliability'
+	x_obj = Reliability
+	x_opt = 1
+if x_obj_name == 'Res':
+	x_obj_name = 'Resilience'
+	x_obj = Resilience
+	x_opt = 1
+if x_obj_name == 'Stor':
+	x_obj_name = 'Storage'
+	x_obj = Storage
+	x_opt = 0
+if x_obj_name == 'Con':
+	x_obj_name = 'Conveyance'
+	x_obj = Conveyance
+	x_opt = 0
+if x_obj_name == 'Sup':
+	x_obj_name = 'Supply'
+	x_obj = Supply
+	x_opt = 0
+
+y_obj_name = input("\n Input the y-axis objective: ")
+
+if y_obj_name == 'Spill':
+	y_obj_name = 'Spillage'
+	y_obj = Spillage
+	y_opt = 0
+if y_obj_name == 'Rel':
+	y_obj_name = 'Reliability'
+	y_obj = Reliability
+	y_opt = 1
+if y_obj_name == 'Res':
+	y_obj_name = 'Resilience'
+	y_obj = Resilience
+	y_opt = 1
+if y_obj_name == 'Stor':
+	y_obj_name = 'Storage'
+	y_obj = Storage
+	y_opt = 0
+if y_obj_name == 'Con':
+	y_obj_name = 'Conveyance'
+	y_obj = Conveyance
+	y_opt = 0
+if y_obj_name == 'Sup':
+	y_obj_name = 'Supply'
+	y_obj = Supply
+	y_opt = 0
+
+z_obj_name = input("\n Input the z-axis objective: ")
+
+if z_obj_name == 'Spill':
+	z_obj_name = 'Spillage'
+	z_obj = Spillage
+	z_opt = 0
+if z_obj_name == 'Rel':
+	z_obj_name = 'Reliability'
+	z_obj = Reliability
+	z_opt = 1
+if z_obj_name == 'Res':
+	z_obj_name = 'Resilience'
+	z_obj = Resilience
+	z_opt = 1
+if z_obj_name == 'Stor':
+	z_obj_name = 'Storage'
+	z_obj = Storage
+	z_opt = 0
+if z_obj_name == 'Con':
+	z_obj_name = 'Conveyance'
+	z_obj = Conveyance
+	z_opt = 0
+if z_obj_name == 'Sup':
+	z_obj_name = 'Supply'
+	z_obj = Supply
+	z_opt = 0
+
+c_obj_name = input("\n Input the color objective: ")
+
+if c_obj_name == 'Spill':
+	c_obj_name = 'Spillage'
+	c_obj = Spillage
+if c_obj_name == 'Rel':
+	c_obj_name = 'Reliability'
+	c_obj = Reliability
+if c_obj_name == 'Res':
+	c_obj_name = 'Resilience'
+	c_obj = Resilience
+if c_obj_name == 'Stor':
+	c_obj_name = 'Storage'
+	c_obj = Storage
+if c_obj_name == 'Con':
+	c_obj_name = 'Conveyance'
+	c_obj = Conveyance
+if c_obj_name == 'Sup':
+	c_obj_name = 'Supply'
+	c_obj = Supply
+
+s_obj_name = input("\n Input the size objective: ")
+
+if s_obj_name == 'Spill':
+	s_obj_name = 'Spillage'
+	scale = 0.1 				# Size objective scale
+	s_obj = Spillage
+if s_obj_name == 'Rel':
+	s_obj_name = 'Reliability'
+	s_obj = Reliability
+	scale = 40
+if s_obj_name == 'Res':
+	s_obj_name = 'Resilience'
+	s_obj = Resilience
+	scale = 40
+if s_obj_name == 'Stor':
+	s_obj_name = 'Storage'
+	s_obj = Storage
+	scale = 40
+if s_obj_name == 'Con':
+	s_obj_name = 'Conveyance'
+	s_obj = Conveyance
+	scale = 40
+if s_obj_name == 'Sup':
+	s_obj_name = 'Supply'
+	s_obj = Supply
+	scale = 40
+
+
+fig = plt.figure()
+
+ax = fig.add_subplot(111, projection='3d')
+
+# Plot 5 objectives
+im = ax.scatter(x_obj,y_obj,z_obj, c=c_obj, s=s_obj*scale, cmap=plt.cm.PuOr)
+
+#Plotting the ideal point:
+ax.scatter(x_opt,y_opt,z_opt, marker='*', c='red', s=300, alpha=1) 
+
+#Main axis labels:
+ax.set_xlabel(x_obj_name)
+ax.set_ylabel(y_obj_name)
+ax.set_zlabel(z_obj_name)
+
+#Axis limits:
+
+x_lo = min(x_obj)
+x_hi = max(x_obj)
+
+y_lo = min(y_obj)
+y_hi = max(y_obj)
+
+z_lo = min(z_obj)
+z_hi = max(z_obj)
+
+if x_obj_name == 'Spillage':
+	plt.xlim([0,x_hi])
+elif y_obj_name == 'Spillage':
+	plt.ylim([0,y_hi])
+elif z_obj_name == 'Spillage':
+	ax.set_zlim3d(0,z_hi)
+else:
+	plt.xlim([0,1])
+	plt.ylim([0,1])
+	ax.set_zlim3d(0,1)
+
+#Colorbar label:
+cbar = plt.colorbar(im)
+cbar.ax.set_ylabel(c_obj_name)
+
+#Get artists and labels for legend and chose which ones to display
+handles, labels = ax.get_legend_handles_labels()
+display = (0,1,2)
+
+
+#Code for size and rotation legends begins here for Objectives 5 and 6:
+#The size min and max may require some scaling to improve visibility,
+#But if it is implemented like so, it will keep the size properties
+'''min_size=np.amin(objs)*6 
+max_size=np.amax(objs)*8
+markersize=15'''
+
+#Custom size legend:
+'''size_max = plt.Line2D((0,1),(0,0), color='k', marker='o', markersize=max_size,linestyle='')
+size_min = plt.Line2D((0,1),(0,0), color='k', marker='o', markersize=min_size,linestyle='')
+legend1= ax.legend([handle for i,handle in enumerate(handles) if i in display]+[size_max,size_min],
+          #[label for i,label in enumerate(labels) if i in display]+["%.2f"%(np.amax(objs)), "%.2f"%(np.amin(objs))], labelspacing=1.5, title='Resilience/Vulnerability', loc=1, frameon=True, numpoints=1, markerscale=1)
+'''
+#Custom rotation legend
+#rotation_max = plt.Line2D((0,1),(0,0),color='k',marker=r'$\Uparrow$', markersize=15, linestyle='')
+#rotation_min = plt.Line2D((0,1),(0,0),color='k', marker=r'$\Downarrow$', markersize=15, linestyle='')
+#ax.legend([handle for i,handle in enumerate(handles) if i in display]+[rotation_max,rotation_min],
+          #[label for i,label in enumerate(labels) if i in display]+["%.2f"%(np.amax(objr)), "%.2f"%(np.amin(objr))], labelspacing=1.5, title='Objective 5',loc=2, frameon=True, numpoints=1, markerscale=1)
+
+# This is to plot a second legend:
+#plt.gca().add_artist(legend1)
+
+plt.show()
+
+# The custom rotation legend shown in lines 79 to 88 will only show an up and down arrow for the largest and lowest objective values
+# in order to show the actual rotation in your legend, you can do the following for now: 
+#rotation_max = plt.Line2D((0,1),(0,0),color='k', marker=(3,0,np.max(objr)*rot_angle), markersize=markersize, linestyle='')
+#rotation_min= plt.Line2D((0,1),(0,0),color='k', marker=(3,0,np.min(objr)*rot_angle), markersize=markersize, linestyle='')
