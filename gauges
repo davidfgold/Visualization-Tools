@@ -1,0 +1,1437 @@
+# makes the gauges
+
+import plotly.plotly as py
+import numpy as np
+import plotly.graph_objs as go
+import math
+from math import log10, floor
+from plotly.offline import plot
+from PIL import Image
+import pandas as pd
+import csv
+from itertools import izip
+
+df = pd.read_csv('borg.csv')
+Pareto_ID=df['Pareto ID']
+Spillage=df['Avg Annual LRF and Trans Spill']
+StorageReliability=df['1 YOD Storage Reliability Obj']
+Storage=df['Normalized Storage']
+Conveyance=df['Normalized Conveyance']
+Supply=df['Normalized Supply']
+ResilienceVulnerability=df['1 YOD Res/Vul GeoMean Obj']
+
+
+with open('some.csv', 'wb') as f:
+    writer = csv.writer(f)
+    writer.writerows(izip(Pareto_ID, Spillage,StorageReliability,Storage,Conveyance,Supply,ResilienceVulnerability))
+    # print Pareto_ID,Spillage
+
+# 3. Create vectors to use as the scales for the dial
+#    Each objective will have its own vector for scaling
+ParetoIDinput=input('Enter Pareto ID: ')
+ParetoIDinput2=int(ParetoIDinput)-1
+
+SecondParetoID1=input('Enter a second Pareto ID: ')
+SecondParetoID2=int(SecondParetoID1)-1
+
+ThirdParetoID1=input('Enter a third Pareto ID: ')
+ThirdParetoID=int(ThirdParetoID1)-1
+
+MaxSpillage=input('Enter maximum allowable spillage: ')
+SpillageVector=np.linspace(0,MaxSpillage,num=6)
+
+MinStorageReliability=input('Enter minimum acceptable percentage of 1 YOD storage reliability: ')
+StorageReliabilityVector=np.linspace(MinStorageReliability,1,num=6)
+
+MinRV=input('Enter minimum acceptable percentage of 1 YOD Resilience/Vulnerability GeoMean: ')
+MinRVVector=np.linspace(MinRV,1,num=6)
+
+# from user input of row, get the Spillage, etc. of that row
+SpillageInput=Spillage[ParetoIDinput2]
+StorageReliabilityInput=StorageReliability[ParetoIDinput2]
+StorageReliabilityInput=-StorageReliabilityInput
+RVinput=ResilienceVulnerability[ParetoIDinput2]
+RVinput=-RVinput
+StorageInput=Storage[ParetoIDinput2]
+ConveyanceInput=Conveyance[ParetoIDinput2]
+SupplyInput=Supply[ParetoIDinput2]
+
+SpillageInput2=Spillage[SecondParetoID2]
+StorageReliabilityInput2=StorageReliability[SecondParetoID2]
+StorageReliabilityInput2=-StorageReliabilityInput
+RVinput2=ResilienceVulnerability[SecondParetoID2]
+RVinput2=-RVinput2
+StorageInput2=Storage[SecondParetoID2]
+ConveyanceInput2=Conveyance[SecondParetoID2]
+SupplyInput2=Supply[SecondParetoID2]
+
+SpillageInput3=Spillage[ThirdParetoID]
+StorageReliabilityInput3=StorageReliability[ThirdParetoID]
+StorageReliabilityInput3=-StorageReliabilityInput
+RVinput3=ResilienceVulnerability[ThirdParetoID]
+RVinput3=-RVinput3
+StorageInput3=Storage[ThirdParetoID]
+ConveyanceInput3=Conveyance[ThirdParetoID]
+SupplyInput3=Supply[ThirdParetoID]
+
+# THERE ARE A LOT OF SIG FIGS figure out how to pick the amount. also do this for the input
+# print SpillageVector
+#
+def rounded(x):
+    return round(x, -int(floor(log10(abs(x))))+3)
+
+# print rounded(SpillageVector)
+
+SpillageVector[1]= rounded(SpillageVector[1])
+SpillageVector[2]= rounded(SpillageVector[2])
+SpillageVector[3]= rounded(SpillageVector[3])
+SpillageVector[4]= rounded(SpillageVector[4])
+SpillageVector[5]= rounded(SpillageVector[5])
+MinRVVector[0]= rounded(MinRVVector[0])
+MinRVVector[1]= rounded(MinRVVector[1])
+MinRVVector[2]= rounded(MinRVVector[2])
+MinRVVector[3]= rounded(MinRVVector[3])
+MinRVVector[4]= rounded(MinRVVector[4])
+StorageReliabilityVector[0]= rounded(StorageReliabilityVector[0])
+StorageReliabilityVector[1]= rounded(StorageReliabilityVector[1])
+StorageReliabilityVector[2]= rounded(StorageReliabilityVector[2])
+StorageReliabilityVector[3]= rounded(StorageReliabilityVector[3])
+StorageReliabilityVector[4]= rounded(StorageReliabilityVector[4])
+
+if SpillageInput >0:
+    SpillageInput=rounded(SpillageInput)
+else:
+    SpillageInput=SpillageInput
+StorageReliabilityInput=rounded(StorageReliabilityInput)
+RVinput=rounded(RVinput)
+
+if SpillageInput2 >0:
+    SpillageInput2=rounded(SpillageInput2)
+else:
+    SpillageInput2=SpillageInput2
+StorageReliabilityInput3=rounded(StorageReliabilityInput3)
+RVinput3=rounded(RVinput3)
+
+if SpillageInput3 >0:
+    SpillageInput3=rounded(SpillageInput3)
+else:
+    SpillageInput3=SpillageInput3
+StorageReliabilityInput3 = rounded(StorageReliabilityInput3)
+RVinput3 = rounded(RVinput3)
+
+
+
+# 4. create a function to draw a dial, the inputs should be the scale of the dial
+#    and the objective value data
+
+#    a. Create a base chart, start with sample code below:
+
+base_chart = {
+    "values": [40,10,10,10,10,10,10],
+    "labels": ["-",SpillageVector[5],SpillageVector[4],SpillageVector[3],SpillageVector[2],SpillageVector[1],"0"],
+    "domain": {"x": [.25, .73]},
+    "marker": {
+        "colors": [
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)'
+        ],
+        "line": {
+            "width": 1
+        }
+    },
+    "name": "Gauge",
+    "hole": .4,
+    "type": "pie",
+    "direction": "clockwise",
+    "rotation": 108,
+    "showlegend": False,
+    "hoverinfo": "none",
+    "textinfo": "label",
+    "textposition": "outside"
+}
+
+# b. meter the chart, start with sample code below (labels and values to be changed, color too)
+meter_chart= {
+    "values": [50, 10,10,10,10,10],
+    "labels": ["", "Critical", "High", "Medium","Low","Ideal"],
+    "marker": {
+        'colors': [
+            'rgb(255, 255, 255)',
+            'rgb(0,0,204)',
+            'rgb(0,128,255)',
+            'rgb(102,178,255)',
+            'rgb(153,204,255)',
+            'rgb(204,229,255)'
+        ]
+    },
+    "domain": {"x": [.25, .73]},
+    "name": "Gauge",
+    "hole": .3,
+    "type": "pie",
+    "direction": "clockwise",
+    "rotation": 90,
+    "showlegend": False,
+    "textinfo": "label",
+    "textposition": "inside",
+    "hoverinfo": "none"
+}
+
+if SpillageInput < MaxSpillage/2:
+        angle=(90*SpillageInput)/(MaxSpillage/2)
+        angle=-90+angle
+else:
+    if SpillageInput > MaxSpillage/2:
+        angle=(90*SpillageInput)/(MaxSpillage/2)
+        angle=angle-90
+    else:
+        angle=0
+
+if SpillageInput > MaxSpillage:
+    print ("Spillage of Pareto ID " + str(ParetoIDinput2) + " exceeds maximum allowable spillage")
+    angle=-100
+
+def rotatePoint(centerPoint,point,angle):
+    """Rotates a point around another centerPoint. Angle is in degrees.
+    Rotation is counter-clockwise"""
+    angle = math.radians(angle)
+    temp_point = point[0]-centerPoint[0] , point[1]-centerPoint[1]
+    temp_point = ( temp_point[0]*math.cos(angle)-temp_point[1]*math.sin(angle) , temp_point[0]*math.sin(angle)+temp_point[1]*math.cos(angle))
+    temp_point = temp_point[0]+centerPoint[0] , temp_point[1]+centerPoint[1]
+    return temp_point
+
+center=[.49,.5]
+my_point = [.49, .565]
+new_point=rotatePoint(center,my_point,angle)
+path = 'M ' + str(0.49) + ' ' + str(0.5) + ' L ' + str(new_point[0]) + ' '+ str(new_point[1]) + ' Z'
+
+layout = {
+    'xaxis': {
+        'showticklabels': False,
+        'autotick': False,
+        'showgrid': False,
+        'zeroline': False,
+    },
+    'yaxis': {
+        'showticklabels': False,
+        'autotick': False,
+        'showgrid': False,
+        'zeroline': False,
+    },
+    'shapes': [
+        {
+            'type': 'path',
+            'path': path,
+            # 'fillcolor': 'rgba(44, 160, 101, 0.5)',
+            'line': {
+                'width': 3.0
+            },
+            'xref': 'paper',
+            'yref': 'paper'
+        }
+    ],
+    'annotations': [
+        {
+            'xref': 'paper',
+            'yref': 'paper',
+            'x': 0.48,
+            'y': 0.45,
+            'text': 'Input = ' + str(SpillageInput),
+            'showarrow': False
+        }
+    ],
+    'title':'Spillage'
+}
+
+# we don't want the boundary now
+base_chart['marker']['line']['width'] = 0
+
+spillageFig = {
+  "data": [base_chart, meter_chart],
+  "layout": layout
+}
+
+#now the gauge for the reliability
+base_chart1 = {
+    "values": [40,10,10,10,10,10,10],
+    "labels": ["-",MinStorageReliability,StorageReliabilityVector[1],StorageReliabilityVector[2],StorageReliabilityVector[3],StorageReliabilityVector[4],StorageReliabilityVector[5]],
+    "domain": {"x": [.25, .73]},
+    "marker": {
+        "colors": [
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)'
+        ],
+        "line": {
+            "width": 1
+        }
+    },
+    "name": "Gauge",
+    "hole": .4,
+    "type": "pie",
+    "direction": "clockwise",
+    "rotation": 108,
+    "showlegend": False,
+    "hoverinfo": "none",
+    "textinfo": "label",
+    "textposition": "outside"
+}
+
+# b. meter the chart, start with sample code below (labels and values to be changed, color too)
+meter_chart1= {
+    "values": [50, 10,10,10,10,10],
+    "labels": ["", "Unreliable", "Low", "Medium", "High", "Most reliable"],
+    "marker": {
+        'colors': [
+            'rgb(255, 255, 255)',
+            'rgb(255,153,153)',
+            'rgb(255,204,153)',
+            'rgb(255,255,153)',
+            'rgb(204,255,153)',
+            'rgb(153,255,153)'
+        ]
+    },
+    "domain": {"x": [.25, .73]},
+    "name": "Gauge",
+    "hole": .3,
+    "type": "pie",
+    "direction": "clockwise",
+    "rotation": 90,
+    "showlegend": False,
+    "textinfo": "label",
+    "textposition": "inside",
+    "hoverinfo": "none"
+}
+
+
+
+if StorageReliabilityInput < (1+MinStorageReliability)/2:
+        angle1=(90*StorageReliabilityInput)/(1+MinStorageReliability/2)
+        angle1=90-angle1
+else:
+    if StorageReliabilityInput > (1+MinStorageReliability)/2:
+        angle1=(90*StorageReliabilityInput)/((1+MinStorageReliability)/2)
+        angle1=-180+angle1
+    else:
+        angle1=0
+
+if StorageReliabilityInput < MinStorageReliability:
+    print ("Storage reliability of Pareto ID "+ str(ParetoIDinput2) + " is too low")
+    angle1=100
+
+
+
+def rotatePoint1(centerPoint,point,angle1):
+    """Rotates a point around another centerPoint. Angle is in degrees.
+    Rotation is counter-clockwise"""
+    angle1 = math.radians(angle1)
+    temp_point = point[0]-centerPoint[0] , point[1]-centerPoint[1]
+    temp_point = ( temp_point[0]*math.cos(angle1)-temp_point[1]*math.sin(angle1) , temp_point[0]*math.sin(angle1)+temp_point[1]*math.cos(angle1))
+    temp_point = temp_point[0]+centerPoint[0] , temp_point[1]+centerPoint[1]
+    return temp_point
+
+center1=[.49,.5]
+my_point1 = [.49, .565]
+new_point1=rotatePoint1(center1,my_point1,angle1)
+path1 = 'M ' + str(0.49) + ' ' + str(0.5) + ' L ' + str(new_point1[0]) + ' '+ str(new_point1[1]) + ' Z'
+
+
+layout1 = {
+    'xaxis': {
+        'showticklabels': False,
+        'autotick': False,
+        'showgrid': False,
+        'zeroline': False,
+    },
+    'yaxis': {
+        'showticklabels': False,
+        'autotick': False,
+        'showgrid': False,
+        'zeroline': False,
+    },
+    'shapes': [
+        {
+            'type': 'path',
+            'path': path1,
+            # 'fillcolor': 'rgba(44, 160, 101, 0.5)',
+            'line': {
+                'width': 3.0
+            },
+            'xref': 'paper',
+            'yref': 'paper'
+        }
+    ],
+    'annotations': [
+        {
+            'xref': 'paper',
+            'yref': 'paper',
+            'x': 0.48,
+            'y': 0.45,
+            'text': 'Input = ' + str(StorageReliabilityInput),
+            'showarrow': False
+        }
+    ],
+    'title':'1 YOD Storage Reliability Percentage'
+}
+
+# we don't want the boundary now
+base_chart1['marker']['line']['width'] = 0
+
+storageFig = {
+  "data": [base_chart1, meter_chart1],
+  "layout": layout1
+}
+
+base_chart2 = {
+    "values": [40,10,10,10,10,10,10],
+    "labels": ["-",MinRV,MinRVVector[1],MinRVVector[2],MinRVVector[3],MinRVVector[4],MinRVVector[5]],
+    "domain": {"x": [.25, .73]},
+    "marker": {
+        "colors": [
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)'
+        ],
+        "line": {
+            "width": 1
+        }
+    },
+    "name": "Gauge",
+    "hole": .4,
+    "type": "pie",
+    "direction": "clockwise",
+    "rotation": 108,
+    "showlegend": False,
+    "hoverinfo": "none",
+    "textinfo": "label",
+    "textposition": "outside"
+}
+
+# b. meter the chart, start with sample code below (labels and values to be changed, color too)
+meter_chart2= {
+    "values": [50, 10,10,10,10,10],
+    "labels": ["", "Least", "Low", "Medium", "High", "Most resilient/vulnerable"],
+    "marker": {
+        'colors': [
+            'rgb(255, 255, 255)',
+            'rgb(255,153,153)',
+            'rgb(255,204,153)',
+            'rgb(255,255,153)',
+            'rgb(204,255,153)',
+            'rgb(153,255,153)'
+        ]
+    },
+    "domain": {"x": [.25, .73]},
+    "name": "Gauge",
+    "hole": .3,
+    "type": "pie",
+    "direction": "clockwise",
+    "rotation": 90,
+    "showlegend": False,
+    "textinfo": "label",
+    "textposition": "inside",
+    "hoverinfo": "none"
+}
+
+
+if RVinput < (1+MinRV)/2:
+        angle2=(90*RVinput)/(1+MinRV/2)
+        angle2=90-angle2
+else:
+    if RVinput > (1+MinRV)/2:
+        angle2=(90*RVinput)/((1+MinRV)/2)
+        angle2=-(-180+angle2)-90
+    else:
+        angle2=0
+
+if RVinput < MinRV:
+    print ("Resilience/Vulnerability of Pareto ID " +str(ParetoIDinput2) + " is too low")
+    angle2=100
+
+
+
+def rotatePoint2(centerPoint,point,angle2):
+    """Rotates a point around another centerPoint. Angle is in degrees.
+    Rotation is counter-clockwise"""
+    angle2 = math.radians(angle2)
+    temp_point = point[0]-centerPoint[0] , point[1]-centerPoint[1]
+    temp_point = ( temp_point[0]*math.cos(angle2)-temp_point[1]*math.sin(angle2) , temp_point[0]*math.sin(angle2)+temp_point[1]*math.cos(angle2))
+    temp_point = temp_point[0]+centerPoint[0] , temp_point[1]+centerPoint[1]
+    return temp_point
+
+center2=[.49,.5]
+my_point2 = [.49, .565]
+new_point2=rotatePoint2(center2,my_point2,angle2)
+path1 = 'M ' + str(0.49) + ' ' + str(0.5) + ' L ' + str(new_point2[0]) + ' '+ str(new_point2[1]) + ' Z'
+
+# + ' L ' + str(0.245) + ' ' + str(0.5) + ' Z'
+
+layout2 = {
+    'xaxis': {
+        'showticklabels': False,
+        'autotick': False,
+        'showgrid': False,
+        'zeroline': False,
+    },
+    'yaxis': {
+        'showticklabels': False,
+        'autotick': False,
+        'showgrid': False,
+        'zeroline': False,
+    },
+    'shapes': [
+        {
+            'type': 'path',
+            'path': path1,
+            # 'fillcolor': 'rgba(44, 160, 101, 0.5)',
+            'line': {
+                'width': 3.0
+            },
+            'xref': 'paper',
+            'yref': 'paper'
+        }
+    ],
+    'annotations': [
+        {
+            'xref': 'paper',
+            'yref': 'paper',
+            'x': 0.48,
+            'y': 0.45,
+            'text': 'Input = ' + str(RVinput),
+            'showarrow': False
+        }
+    ],
+    'title':'1 YOD Resilience/Vulnerability GeoMean Percentage'
+}
+
+# we don't want the boundary now
+base_chart2['marker']['line']['width'] = 0
+
+resilienceFig = {
+  "data": [base_chart2, meter_chart2],
+  "layout": layout2
+}
+
+# py.image.save_as(resilienceFig,filename='1 YOD Resilience-Vulnerability GeoMean.png')
+# from IPython.display import Image
+# subplot2=Image('1 YOD Resilience-Vulnerability GeoMean.png')
+
+
+# plot(storageFig, filename='gauge-meter-storage.html') #this is the chart for storage reliability
+# plot(resilienceFig, filename='gauge-meter-resilience.html') # this is the chart for resilience/vulnerability
+# plot(spillageFig, filename='gauge-meter-spillage.html') #this is the chart for spillage
+
+# 4. create a function to draw a dial, the inputs should be the scale of the dial
+#    and the objective value data
+
+#    a. Create a base chart, start with sample code below:
+
+base_chart = {
+    "values": [40,10,10,10,10,10,10],
+    "labels": ["-",SpillageVector[5],SpillageVector[4],SpillageVector[3],SpillageVector[2],SpillageVector[1],"0"],
+    "domain": {"x": [.25, .73]},
+    "marker": {
+        "colors": [
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)'
+        ],
+        "line": {
+            "width": 1
+        }
+    },
+    "name": "Gauge",
+    "hole": .4,
+    "type": "pie",
+    "direction": "clockwise",
+    "rotation": 108,
+    "showlegend": False,
+    "hoverinfo": "none",
+    "textinfo": "label",
+    "textposition": "outside"
+}
+
+# b. meter the chart, start with sample code below (labels and values to be changed, color too)
+meter_chart= {
+    "values": [50, 10,10,10,10,10],
+    "labels": ["", "Critical", "High", "Medium","Low","Ideal"],
+    "marker": {
+        'colors': [
+            'rgb(255, 255, 255)',
+            'rgb(0,0,204)',
+            'rgb(0,128,255)',
+            'rgb(102,178,255)',
+            'rgb(153,204,255)',
+            'rgb(204,229,255)'
+        ]
+    },
+    "domain": {"x": [.25, .73]},
+    "name": "Gauge",
+    "hole": .3,
+    "type": "pie",
+    "direction": "clockwise",
+    "rotation": 90,
+    "showlegend": False,
+    "textinfo": "label",
+    "textposition": "inside",
+    "hoverinfo": "none"
+}
+
+if SpillageInput2 < MaxSpillage/2:
+        angle=(90*SpillageInput2)/(MaxSpillage/2)
+        angle=-90+angle
+else:
+    if SpillageInput2 > MaxSpillage/2:
+        angle=(90*SpillageInput2)/(MaxSpillage/2)
+        angle=angle-90
+    else:
+        angle=0
+
+if SpillageInput2 > MaxSpillage:
+    print ("Spillage of Pareto ID "+str(SecondParetoID1) + " exceeds maximum allowable spillage")
+    angle=-100
+
+def rotatePoint(centerPoint,point,angle):
+    """Rotates a point around another centerPoint. Angle is in degrees.
+    Rotation is counter-clockwise"""
+    angle = math.radians(angle)
+    temp_point = point[0]-centerPoint[0] , point[1]-centerPoint[1]
+    temp_point = ( temp_point[0]*math.cos(angle)-temp_point[1]*math.sin(angle) , temp_point[0]*math.sin(angle)+temp_point[1]*math.cos(angle))
+    temp_point = temp_point[0]+centerPoint[0] , temp_point[1]+centerPoint[1]
+    return temp_point
+
+center=[.49,.5]
+my_point = [.49, .565]
+new_point=rotatePoint(center,my_point,angle)
+path = 'M ' + str(0.49) + ' ' + str(0.5) + ' L ' + str(new_point[0]) + ' '+ str(new_point[1]) + ' Z'
+
+layout = {
+    'xaxis': {
+        'showticklabels': False,
+        'autotick': False,
+        'showgrid': False,
+        'zeroline': False,
+    },
+    'yaxis': {
+        'showticklabels': False,
+        'autotick': False,
+        'showgrid': False,
+        'zeroline': False,
+    },
+    'shapes': [
+        {
+            'type': 'path',
+            'path': path,
+            # 'fillcolor': 'rgba(44, 160, 101, 0.5)',
+            'line': {
+                'width': 3.0
+            },
+            'xref': 'paper',
+            'yref': 'paper'
+        }
+    ],
+    'annotations': [
+        {
+            'xref': 'paper',
+            'yref': 'paper',
+            'x': 0.48,
+            'y': 0.45,
+            'text': 'Input = ' + str(SpillageInput2),
+            'showarrow': False
+        }
+    ],
+    'title':'Spillage'
+}
+
+# we don't want the boundary now
+base_chart['marker']['line']['width'] = 0
+
+spillageFig2 = {
+  "data": [base_chart, meter_chart],
+  "layout": layout
+}
+
+#now the gauge for the reliability
+base_chart1 = {
+    "values": [40,10,10,10,10,10,10],
+    "labels": ["-",MinStorageReliability,StorageReliabilityVector[1],StorageReliabilityVector[2],StorageReliabilityVector[3],StorageReliabilityVector[4],StorageReliabilityVector[5]],
+    "domain": {"x": [.25, .73]},
+    "marker": {
+        "colors": [
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)'
+        ],
+        "line": {
+            "width": 1
+        }
+    },
+    "name": "Gauge",
+    "hole": .4,
+    "type": "pie",
+    "direction": "clockwise",
+    "rotation": 108,
+    "showlegend": False,
+    "hoverinfo": "none",
+    "textinfo": "label",
+    "textposition": "outside"
+}
+
+# b. meter the chart, start with sample code below (labels and values to be changed, color too)
+meter_chart1= {
+    "values": [50, 10,10,10,10,10],
+    "labels": ["", "Unreliable", "Low", "Medium", "High", "Most reliable"],
+    "marker": {
+        'colors': [
+            'rgb(255, 255, 255)',
+            'rgb(255,153,153)',
+            'rgb(255,204,153)',
+            'rgb(255,255,153)',
+            'rgb(204,255,153)',
+            'rgb(153,255,153)'
+        ]
+    },
+    "domain": {"x": [.25, .73]},
+    "name": "Gauge",
+    "hole": .3,
+    "type": "pie",
+    "direction": "clockwise",
+    "rotation": 90,
+    "showlegend": False,
+    "textinfo": "label",
+    "textposition": "inside",
+    "hoverinfo": "none"
+}
+
+
+
+if StorageReliabilityInput2 < (1+MinStorageReliability)/2:
+        angle1=(90*StorageReliabilityInput2)/(1+MinStorageReliability/2)
+        angle1=90-angle1
+else:
+    if StorageReliabilityInput2 > (1+MinStorageReliability)/2:
+        angle1=(90*StorageReliabilityInput2)/((1+MinStorageReliability)/2)
+        angle1=-180+angle1
+    else:
+        angle1=0
+
+if StorageReliabilityInput2 < MinStorageReliability:
+    print ("Storage reliability of Pareto ID "+str(SecondParetoID1) + " is too low")
+    angle1=100
+
+
+
+def rotatePoint1(centerPoint,point,angle1):
+    """Rotates a point around another centerPoint. Angle is in degrees.
+    Rotation is counter-clockwise"""
+    angle1 = math.radians(angle1)
+    temp_point = point[0]-centerPoint[0] , point[1]-centerPoint[1]
+    temp_point = ( temp_point[0]*math.cos(angle1)-temp_point[1]*math.sin(angle1) , temp_point[0]*math.sin(angle1)+temp_point[1]*math.cos(angle1))
+    temp_point = temp_point[0]+centerPoint[0] , temp_point[1]+centerPoint[1]
+    return temp_point
+
+center1=[.49,.5]
+my_point1 = [.49, .565]
+new_point1=rotatePoint1(center1,my_point1,angle1)
+path1 = 'M ' + str(0.49) + ' ' + str(0.5) + ' L ' + str(new_point1[0]) + ' '+ str(new_point1[1]) + ' Z'
+
+
+layout1 = {
+    'xaxis': {
+        'showticklabels': False,
+        'autotick': False,
+        'showgrid': False,
+        'zeroline': False,
+    },
+    'yaxis': {
+        'showticklabels': False,
+        'autotick': False,
+        'showgrid': False,
+        'zeroline': False,
+    },
+    'shapes': [
+        {
+            'type': 'path',
+            'path': path1,
+            # 'fillcolor': 'rgba(44, 160, 101, 0.5)',
+            'line': {
+                'width': 3.0
+            },
+            'xref': 'paper',
+            'yref': 'paper'
+        }
+    ],
+    'annotations': [
+        {
+            'xref': 'paper',
+            'yref': 'paper',
+            'x': 0.48,
+            'y': 0.45,
+            'text': 'Input = ' + str(StorageReliabilityInput2),
+            'showarrow': False
+        }
+    ],
+    'title':'1 YOD Storage Reliability Percentage'
+}
+
+# we don't want the boundary now
+base_chart1['marker']['line']['width'] = 0
+
+storageFig2 = {
+  "data": [base_chart1, meter_chart1],
+  "layout": layout1
+}
+
+base_chart2 = {
+    "values": [40,10,10,10,10,10,10],
+    "labels": ["-",MinRV,MinRVVector[1],MinRVVector[2],MinRVVector[3],MinRVVector[4],MinRVVector[5]],
+    "domain": {"x": [.25, .73]},
+    "marker": {
+        "colors": [
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)'
+        ],
+        "line": {
+            "width": 1
+        }
+    },
+    "name": "Gauge",
+    "hole": .4,
+    "type": "pie",
+    "direction": "clockwise",
+    "rotation": 108,
+    "showlegend": False,
+    "hoverinfo": "none",
+    "textinfo": "label",
+    "textposition": "outside"
+}
+
+# b. meter the chart, start with sample code below (labels and values to be changed, color too)
+meter_chart2= {
+    "values": [50, 10,10,10,10,10],
+    "labels": ["", "Least", "Low", "Medium", "High", "Most resilient/vulnerable"],
+    "marker": {
+        'colors': [
+            'rgb(255, 255, 255)',
+            'rgb(255,153,153)',
+            'rgb(255,204,153)',
+            'rgb(255,255,153)',
+            'rgb(204,255,153)',
+            'rgb(153,255,153)'
+        ]
+    },
+    "domain": {"x": [.25, .73]},
+    "name": "Gauge",
+    "hole": .3,
+    "type": "pie",
+    "direction": "clockwise",
+    "rotation": 90,
+    "showlegend": False,
+    "textinfo": "label",
+    "textposition": "inside",
+    "hoverinfo": "none"
+}
+
+
+if RVinput2 < (1+MinRV)/2:
+        angle2=(90*RVinput2)/(1+MinRV/2)
+        angle2=90-angle2
+else:
+    if RVinput2 > (1+MinRV)/2:
+        angle2=(90*RVinput2)/((1+MinRV)/2)
+        angle2=-(-180+angle2)-90
+    else:
+        angle2=0
+
+if RVinput2 < MinRV:
+    print ("Resilience/Vulnerability of Pareto ID "+str(SecondParetoID1) + " is too low")
+    angle2=100
+
+
+
+def rotatePoint2(centerPoint,point,angle2):
+    """Rotates a point around another centerPoint. Angle is in degrees.
+    Rotation is counter-clockwise"""
+    angle2 = math.radians(angle2)
+    temp_point = point[0]-centerPoint[0] , point[1]-centerPoint[1]
+    temp_point = ( temp_point[0]*math.cos(angle2)-temp_point[1]*math.sin(angle2) , temp_point[0]*math.sin(angle2)+temp_point[1]*math.cos(angle2))
+    temp_point = temp_point[0]+centerPoint[0] , temp_point[1]+centerPoint[1]
+    return temp_point
+
+center2=[.49,.5]
+my_point2 = [.49, .565]
+new_point2=rotatePoint2(center2,my_point2,angle2)
+path1 = 'M ' + str(0.49) + ' ' + str(0.5) + ' L ' + str(new_point2[0]) + ' '+ str(new_point2[1]) + ' Z'
+
+# + ' L ' + str(0.245) + ' ' + str(0.5) + ' Z'
+
+layout2 = {
+    'xaxis': {
+        'showticklabels': False,
+        'autotick': False,
+        'showgrid': False,
+        'zeroline': False,
+    },
+    'yaxis': {
+        'showticklabels': False,
+        'autotick': False,
+        'showgrid': False,
+        'zeroline': False,
+    },
+    'shapes': [
+        {
+            'type': 'path',
+            'path': path1,
+            # 'fillcolor': 'rgba(44, 160, 101, 0.5)',
+            'line': {
+                'width': 3.0
+            },
+            'xref': 'paper',
+            'yref': 'paper'
+        }
+    ],
+    'annotations': [
+        {
+            'xref': 'paper',
+            'yref': 'paper',
+            'x': 0.48,
+            'y': 0.45,
+            'text': 'Input = ' + str(RVinput2),
+            'showarrow': False
+        }
+    ],
+    'title':'1 YOD Resilience/Vulnerability GeoMean Percentage'
+}
+
+# we don't want the boundary now
+base_chart2['marker']['line']['width'] = 0
+
+resilienceFig2 = {
+  "data": [base_chart2, meter_chart2],
+  "layout": layout2
+}
+
+# 4. create a function to draw a dial, the inputs should be the scale of the dial
+#    and the objective value data
+
+#    a. Create a base chart, start with sample code below:
+
+base_chart = {
+    "values": [40,10,10,10,10,10,10],
+    "labels": ["-",SpillageVector[5],SpillageVector[4],SpillageVector[3],SpillageVector[2],SpillageVector[1],"0"],
+    "domain": {"x": [.25, .73]},
+    "marker": {
+        "colors": [
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)'
+        ],
+        "line": {
+            "width": 1
+        }
+    },
+    "name": "Gauge",
+    "hole": .4,
+    "type": "pie",
+    "direction": "clockwise",
+    "rotation": 108,
+    "showlegend": False,
+    "hoverinfo": "none",
+    "textinfo": "label",
+    "textposition": "outside"
+}
+
+# b. meter the chart, start with sample code below (labels and values to be changed, color too)
+meter_chart= {
+    "values": [50, 10,10,10,10,10],
+    "labels": ["", "Critical", "High", "Medium","Low","Ideal"],
+    "marker": {
+        'colors': [
+            'rgb(255, 255, 255)',
+            'rgb(0,0,204)',
+            'rgb(0,128,255)',
+            'rgb(102,178,255)',
+            'rgb(153,204,255)',
+            'rgb(204,229,255)'
+        ]
+    },
+    "domain": {"x": [.25, .73]},
+    "name": "Gauge",
+    "hole": .3,
+    "type": "pie",
+    "direction": "clockwise",
+    "rotation": 90,
+    "showlegend": False,
+    "textinfo": "label",
+    "textposition": "inside",
+    "hoverinfo": "none"
+}
+
+if SpillageInput3 < MaxSpillage/2:
+        angle=(90*SpillageInput3)/(MaxSpillage/2)
+        angle=-90+angle
+else:
+    if SpillageInput3 > MaxSpillage/2:
+        angle=(90*SpillageInput3)/(MaxSpillage/2)
+        angle=angle-90
+    else:
+        angle=0
+
+if SpillageInput3 > MaxSpillage:
+    print ("Spillage of Pareto ID "+str(ThirdParetoID1) + " exceeds maximum allowable spillage")
+    angle=-100
+
+def rotatePoint(centerPoint,point,angle):
+    """Rotates a point around another centerPoint. Angle is in degrees.
+    Rotation is counter-clockwise"""
+    angle = math.radians(angle)
+    temp_point = point[0]-centerPoint[0] , point[1]-centerPoint[1]
+    temp_point = ( temp_point[0]*math.cos(angle)-temp_point[1]*math.sin(angle) , temp_point[0]*math.sin(angle)+temp_point[1]*math.cos(angle))
+    temp_point = temp_point[0]+centerPoint[0] , temp_point[1]+centerPoint[1]
+    return temp_point
+
+center=[.49,.5]
+my_point = [.49, .565]
+new_point=rotatePoint(center,my_point,angle)
+path = 'M ' + str(0.49) + ' ' + str(0.5) + ' L ' + str(new_point[0]) + ' '+ str(new_point[1]) + ' Z'
+
+layout = {
+    'xaxis': {
+        'showticklabels': False,
+        'autotick': False,
+        'showgrid': False,
+        'zeroline': False,
+    },
+    'yaxis': {
+        'showticklabels': False,
+        'autotick': False,
+        'showgrid': False,
+        'zeroline': False,
+    },
+    'shapes': [
+        {
+            'type': 'path',
+            'path': path,
+            # 'fillcolor': 'rgba(44, 160, 101, 0.5)',
+            'line': {
+                'width': 3.0
+            },
+            'xref': 'paper',
+            'yref': 'paper'
+        }
+    ],
+    'annotations': [
+        {
+            'xref': 'paper',
+            'yref': 'paper',
+            'x': 0.48,
+            'y': 0.45,
+            'text': 'Input = ' + str(SpillageInput3),
+            'showarrow': False
+        }
+    ],
+    'title':'Spillage'
+}
+
+# we don't want the boundary now
+base_chart['marker']['line']['width'] = 0
+
+spillageFig3 = {
+  "data": [base_chart, meter_chart],
+  "layout": layout
+}
+
+#now the gauge for the reliability
+base_chart1 = {
+    "values": [40,10,10,10,10,10,10],
+    "labels": ["-",MinStorageReliability,StorageReliabilityVector[1],StorageReliabilityVector[2],StorageReliabilityVector[3],StorageReliabilityVector[4],StorageReliabilityVector[5]],
+    "domain": {"x": [.25, .73]},
+    "marker": {
+        "colors": [
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)'
+        ],
+        "line": {
+            "width": 1
+        }
+    },
+    "name": "Gauge",
+    "hole": .4,
+    "type": "pie",
+    "direction": "clockwise",
+    "rotation": 108,
+    "showlegend": False,
+    "hoverinfo": "none",
+    "textinfo": "label",
+    "textposition": "outside"
+}
+
+# b. meter the chart, start with sample code below (labels and values to be changed, color too)
+meter_chart1= {
+    "values": [50, 10,10,10,10,10],
+    "labels": ["", "Unreliable", "Low", "Medium", "High", "Most reliable"],
+    "marker": {
+        'colors': [
+            'rgb(255, 255, 255)',
+            'rgb(255,153,153)',
+            'rgb(255,204,153)',
+            'rgb(255,255,153)',
+            'rgb(204,255,153)',
+            'rgb(153,255,153)'
+        ]
+    },
+    "domain": {"x": [.25, .73]},
+    "name": "Gauge",
+    "hole": .3,
+    "type": "pie",
+    "direction": "clockwise",
+    "rotation": 90,
+    "showlegend": False,
+    "textinfo": "label",
+    "textposition": "inside",
+    "hoverinfo": "none"
+}
+
+
+
+if StorageReliabilityInput3 < (1+MinStorageReliability)/2:
+        angle1=(90*StorageReliabilityInput3)/(1+MinStorageReliability/2)
+        angle1=90-angle1
+else:
+    if StorageReliabilityInput3 > (1+MinStorageReliability)/2:
+        angle1=(90*StorageReliabilityInput3)/((1+MinStorageReliability)/2)
+        angle1=-180+angle1
+    else:
+        angle1=0
+
+if StorageReliabilityInput3 < MinStorageReliability:
+    print ("Storage reliability of Pareto ID "+str(ThirdParetoID1) + " is too low")
+    angle1=100
+
+
+
+def rotatePoint1(centerPoint,point,angle1):
+    """Rotates a point around another centerPoint. Angle is in degrees.
+    Rotation is counter-clockwise"""
+    angle1 = math.radians(angle1)
+    temp_point = point[0]-centerPoint[0] , point[1]-centerPoint[1]
+    temp_point = ( temp_point[0]*math.cos(angle1)-temp_point[1]*math.sin(angle1) , temp_point[0]*math.sin(angle1)+temp_point[1]*math.cos(angle1))
+    temp_point = temp_point[0]+centerPoint[0] , temp_point[1]+centerPoint[1]
+    return temp_point
+
+center1=[.49,.5]
+my_point1 = [.49, .565]
+new_point1=rotatePoint1(center1,my_point1,angle1)
+path1 = 'M ' + str(0.49) + ' ' + str(0.5) + ' L ' + str(new_point1[0]) + ' '+ str(new_point1[1]) + ' Z'
+
+
+layout1 = {
+    'xaxis': {
+        'showticklabels': False,
+        'autotick': False,
+        'showgrid': False,
+        'zeroline': False,
+    },
+    'yaxis': {
+        'showticklabels': False,
+        'autotick': False,
+        'showgrid': False,
+        'zeroline': False,
+    },
+    'shapes': [
+        {
+            'type': 'path',
+            'path': path1,
+            # 'fillcolor': 'rgba(44, 160, 101, 0.5)',
+            'line': {
+                'width': 3.0
+            },
+            'xref': 'paper',
+            'yref': 'paper'
+        }
+    ],
+    'annotations': [
+        {
+            'xref': 'paper',
+            'yref': 'paper',
+            'x': 0.48,
+            'y': 0.45,
+            'text': 'Input = ' + str(StorageReliabilityInput3),
+            'showarrow': False
+        }
+    ],
+    'title':'1 YOD Storage Reliability Percentage'
+}
+
+# we don't want the boundary now
+base_chart1['marker']['line']['width'] = 0
+
+storageFig3 = {
+  "data": [base_chart1, meter_chart1],
+  "layout": layout1
+}
+
+base_chart2 = {
+    "values": [40,10,10,10,10,10,10],
+    "labels": ["-",MinRV,MinRVVector[1],MinRVVector[2],MinRVVector[3],MinRVVector[4],MinRVVector[5]],
+    "domain": {"x": [.25, .73]},
+    "marker": {
+        "colors": [
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)',
+            'rgb(255, 255, 255)'
+        ],
+        "line": {
+            "width": 1
+        }
+    },
+    "name": "Gauge",
+    "hole": .4,
+    "type": "pie",
+    "direction": "clockwise",
+    "rotation": 108,
+    "showlegend": False,
+    "hoverinfo": "none",
+    "textinfo": "label",
+    "textposition": "outside"
+}
+
+# b. meter the chart, start with sample code below (labels and values to be changed, color too)
+meter_chart2= {
+    "values": [50, 10,10,10,10,10],
+    "labels": ["", "Least", "Low", "Medium", "High", "Most resilient/vulnerable"],
+    "marker": {
+        'colors': [
+            'rgb(255, 255, 255)',
+            'rgb(255,153,153)',
+            'rgb(255,204,153)',
+            'rgb(255,255,153)',
+            'rgb(204,255,153)',
+            'rgb(153,255,153)'
+        ]
+    },
+    "domain": {"x": [.25, .73]},
+    "name": "Gauge",
+    "hole": .3,
+    "type": "pie",
+    "direction": "clockwise",
+    "rotation": 90,
+    "showlegend": False,
+    "textinfo": "label",
+    "textposition": "inside",
+    "hoverinfo": "none"
+}
+
+
+if RVinput3 < (1+MinRV)/2:
+        angle2=(90*RVinput3)/(1+MinRV/2)
+        angle2=90-angle2
+else:
+    if RVinput3 > (1+MinRV)/2:
+        angle2=(90*RVinput3)/((1+MinRV)/2)
+        angle2=-(-180+angle2)-90
+    else:
+        angle2=0
+
+if RVinput3 < MinRV:
+    print ("Resilience/Vulnerability of Pareto ID "+str(ThirdParetoID1) + " is too low")
+    angle2=100
+
+
+
+def rotatePoint2(centerPoint,point,angle2):
+    """Rotates a point around another centerPoint. Angle is in degrees.
+    Rotation is counter-clockwise"""
+    angle2 = math.radians(angle2)
+    temp_point = point[0]-centerPoint[0] , point[1]-centerPoint[1]
+    temp_point = ( temp_point[0]*math.cos(angle2)-temp_point[1]*math.sin(angle2) , temp_point[0]*math.sin(angle2)+temp_point[1]*math.cos(angle2))
+    temp_point = temp_point[0]+centerPoint[0] , temp_point[1]+centerPoint[1]
+    return temp_point
+
+center2=[.49,.5]
+my_point2 = [.49, .565]
+new_point2=rotatePoint2(center2,my_point2,angle2)
+path1 = 'M ' + str(0.49) + ' ' + str(0.5) + ' L ' + str(new_point2[0]) + ' '+ str(new_point2[1]) + ' Z'
+
+# + ' L ' + str(0.245) + ' ' + str(0.5) + ' Z'
+
+layout2 = {
+    'xaxis': {
+        'showticklabels': False,
+        'autotick': False,
+        'showgrid': False,
+        'zeroline': False,
+    },
+    'yaxis': {
+        'showticklabels': False,
+        'autotick': False,
+        'showgrid': False,
+        'zeroline': False,
+    },
+    'shapes': [
+        {
+            'type': 'path',
+            'path': path1,
+            # 'fillcolor': 'rgba(44, 160, 101, 0.5)',
+            'line': {
+                'width': 3.0
+            },
+            'xref': 'paper',
+            'yref': 'paper'
+        }
+    ],
+    'annotations': [
+        {
+            'xref': 'paper',
+            'yref': 'paper',
+            'x': 0.48,
+            'y': 0.45,
+            'text': 'Input = ' + str(RVinput3),
+            'showarrow': False
+        }
+    ],
+    'title':'1 YOD Resilience/Vulnerability GeoMean Percentage'
+}
+
+# we don't want the boundary now
+base_chart2['marker']['line']['width'] = 0
+
+resilienceFig3 = {
+  "data": [base_chart2, meter_chart2],
+  "layout": layout2
+}
+
+
+#stacked bar chart
+
+x=['Solution A','Solution B','Solution C']
+y = [SupplyInput, SupplyInput2, SupplyInput3]
+y2 = [ConveyanceInput, ConveyanceInput2,ConveyanceInput3]
+y3 = [StorageInput, StorageInput2, StorageInput3]
+df = pd.DataFrame({'x': x, 'y': y, 'y2':y2, 'y3':y3})
+df.head()
+
+data = [
+    go.Bar(
+        x=df['x'], # assign x as the dataframe column 'x'
+        y=df['y'],
+        name='Supply',
+        marker=dict(
+            color='rgb(204,229,255)'
+        )
+    ),
+    go.Bar(
+        x=df['x'],
+        y=df['y2'],
+        name='Conveyance',
+        marker=dict(
+            color='rgb(102,178,255)'
+        )
+    ),
+    go.Bar(
+        x=df['x'],
+        y=df['y3'],
+        name='Storage',
+        marker=dict(
+            color='rgb(0,76,153)'
+        )
+    )
+]
+
+layout = go.Layout(
+    barmode='stack',
+    title='Comparing Solutions'
+)
+
+barfig = go.Figure(data=data, layout=layout)
+# plot(barfig,filename='Stacked bar.html')
+
+# saves all of the images from plot.ly
+py.image.save_as(spillageFig,filename='Spillage.png')
+py.image.save_as(storageFig,filename='Storage.png')
+py.image.save_as(resilienceFig,filename='Resilience.png')
+py.image.save_as(spillageFig2,filename='Spillage2.png')
+py.image.save_as(storageFig2,filename='Storage2.png')
+py.image.save_as(resilienceFig2,filename='Resilience2.png')
+py.image.save_as(spillageFig3,filename='Spillage3.png')
+py.image.save_as(storageFig3,filename='Storage3.png')
+py.image.save_as(resilienceFig3,filename='Resilience3.png')
+py.image.save_as(barfig,filename='Bar.png')
+
+# opens all of the images using Pillow
+imgSpillage = Image.open('Spillage.png')
+imgStorage = Image.open('Storage.png')
+imgResilience = Image.open('Resilience.png')
+imgSpillage2 = Image.open('Spillage2.png')
+imgStorage2 = Image.open('Storage2.png')
+imgResilience2 = Image.open('Resilience2.png')
+imgSpillage3 = Image.open('Spillage3.png')
+imgStorage3 = Image.open('Storage3.png')
+imgResilience3 = Image.open('Resilience3.png')
+imgBar = Image.open('Bar.png')
+
+# pastes only the gauges
+im1 = Image.new("RGB", (700, 1500))
+im1.paste(imgSpillage, (0, 0))
+im1.paste(imgStorage, (0, 500))
+im1.paste(imgResilience, (0, 1000))
+im1.save("Gauges1.png")
+
+# pastes only the gauges
+im2 = Image.new("RGB", (700, 1500))
+im2.paste(imgSpillage2, (0, 0))
+im2.paste(imgStorage2, (0, 500))
+im2.paste(imgResilience2, (0, 1000))
+im2.save("Gauges2.png")
+
+# pastes only the gauges
+im3 = Image.new("RGB", (700, 1500))
+im3.paste(imgSpillage3, (0, 0))
+im3.paste(imgStorage3, (0, 500))
+im3.paste(imgResilience3, (0, 1000))
+im3.save("Gauges3.png")
+
+# pastes only the gauges
+im4 = Image.new("RGB", (2100, 1500))
+im4.paste(im1, (0, 0))
+im4.paste(im2, (700, 0))
+im4.paste(im3, (1400, 0))
+im4.save("GaugesAll.png")
